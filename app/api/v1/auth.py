@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Response, Cookie, HTTPException
 from schemas.users import UserResponse, UserCreate, UserLogin
 from repositories.user import UserRepository
 from repositories.refresh_token import RefreshTokenRepository
@@ -8,6 +8,11 @@ from db.db_session import async_get_db
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.auth import RefreshTokenRequest, TokenResponse
 from schemas.logout import LogoutRequest
+from fastapi.responses import JSONResponse
+from typing import Annotated
+from settings import REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH,REFRESH_COOKIE_SAMESITE,REFRESH_COOKIE_SECURE
+from datetime import datetime
+
 
 router = APIRouter(prefix= "/auth", tags=['Auth'])
 
@@ -25,26 +30,69 @@ async def registration(
 
 
 @router.post('/login', response_model=TokenResponse)
-async def login(data:UserLogin, session: AsyncSession = Depends(async_get_db)):
+async def login(data:UserLogin, response: Response, session: AsyncSession = Depends(async_get_db) ):
 
-    repo = UserRepository(session)
-    service = AuthService(repo)
-    return await service.user_login(data)
+#    repo = UserRepository(session)
+    service = AuthService(UserRepository(session))
+
+    tokens = service.user_login(data)
+
+    response.set_cookie(
+        key = REFRESH_COOKIE_NAME,
+        value = tokens['refresh_token'],
+        httponly=True,
+        secure= REFRESH_COOKIE_SECURE,
+        path = REFRESH_COOKIE_PATH,
+        )
+    
+    return {
+        "access_token": tokens["access_token"],
+        "token_type": "bearer",
+        }
 
 
 @router.post('/refresh', response_model=TokenResponse)
-async def refresh(data:RefreshTokenRequest, session: AsyncSession = Depends(async_get_db)):
+async def refresh(response: Response, refresh_token: Annotated[str | None, Cookie()] = None, session: AsyncSession = Depends(async_get_db)):
 
-    repo = UserRepository(session)
-    service = AuthService(repo)
-    return await service.refresh_access_token(data.refresh_token)
+    service = AuthService(repo=UserRepository(session), refresh=RefreshTokenRepository(session))
+    tokens = await service.refresh_access_token(refresh_token)
+
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+    
+    response.set_cookie(
+    key = REFRESH_COOKIE_NAME,
+    value = tokens['refresh_token'],
+    httponly=True,
+    secure= REFRESH_COOKIE_SECURE,
+    path = REFRESH_COOKIE_PATH,
+    )
+    
+    return {
+        "access_token": tokens["access_token"],
+        "token_type": "bearer",
+        }
 
 
 @router.post('/logout', status_code=204)
-async def logout(data:LogoutRequest, session: AsyncSession = Depends(async_get_db)):
-#    repo = UserRepository(session)
-    refresh_repo = RefreshTokenRepository(session)
-    service = AuthService(None, refresh_repo)
-    await service.logout(data.refresh_token)
+async def logout(
+    response: Response,
+    refresh_token: Annotated[str | None, Cookie()] = None,
+    session: AsyncSession = Depends(async_get_db)
+    ):
+    
+    if not refresh_token:
+        raise HTTPException(status_code=401, detail="Refresh token missing")
+
+
+    service = AuthService(repo = None,  refresh=RefreshTokenRepository(session))
+
+    await service.logout(refresh_token)
+
+    response.delete_cookie(
+        key=REFRESH_COOKIE_NAME,
+        path=REFRESH_COOKIE_PATH,
+        )
+
 
 

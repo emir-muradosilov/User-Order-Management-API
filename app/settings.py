@@ -25,3 +25,11 @@ class Config(BaseSettings):
         return cls()
 
 config = Config.load()
+
+
+REFRESH_COOKIE_NAME = "refresh_token"
+REFRESH_COOKIE_PATH = "/api/v1/auth"
+REFRESH_COOKIE_SECURE = False  # True в проде (HTTPS)
+REFRESH_COOKIE_SAMESITE = "lax"
+
+

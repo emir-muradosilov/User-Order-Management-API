@@ -55,13 +55,15 @@ class AuthService:
             return {
             "access_token": create_access_token(str(user.id)),
             "refresh_token": token_data['token'],
-            "token_type": "bearer"
+            "refresh_jti": token_data['jti'],
+            "refresh_expires": token_data["expires_at"]
         }
 
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Неверный пароль!')
 
         
     async def refresh_access_token(self, refresh_token:str):
+        
         payload = decode_token(refresh_token)
 
         if payload.get('type') != 'refresh':
@@ -104,7 +106,7 @@ class AuthService:
 
 
     async def logout(self, refresh_token : str) -> None:
-
+        
         payload = decode_token(refresh_token)
 
         if payload.get('type') != 'refresh':
@@ -119,7 +121,3 @@ class AuthService:
             return 
         
         await self.refresh.revoke_refresh_token(jti)
-
-        
-
-
