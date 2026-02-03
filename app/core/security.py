@@ -11,6 +11,8 @@ from repositories.user import UserRepository
 from repositories.refresh_token import RefreshTokenRepository
 import uuid
 from fastapi.security import OAuth2PasswordBearer
+from models.models import User
+from repositories.permission import PermissionRepository
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
@@ -91,6 +93,28 @@ def get_current_user(token:str= Depends(oauth2_scheme), db:AsyncSession = Depend
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not found')
     return user
+
+
+def require_permission(permission_name: str):
+
+    async def permission_checker(
+        user: User = Depends(get_current_user),
+        session: AsyncSession = Depends(async_get_db),
+    ) -> User:
+        
+        if not user or not user.is_active:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='User is inactive')
+        
+        repo = PermissionRepository(session)
+        permission = await repo.get_permission_by_role_id(user.id)
+
+        if permission_name not in permission:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Недостаточно прав')
+
+        return user
+    
+    return permission_checker
+
 
 
 
