@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.core.security import require_permission
+from core.security import require_permission
 
 
 

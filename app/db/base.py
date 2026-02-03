@@ -30,6 +30,7 @@ class AsyncConfigDB(BaseSettings):
 
     def async_get_url(self):
         return f'postgresql+asyncpg://{self.db_user}:{self.db_pass}@{self.db_host}:{self.db_port}/{self.db_name}'
+
     
     class Config:
         env_file = '.env'
