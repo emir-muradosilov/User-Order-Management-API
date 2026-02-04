@@ -12,7 +12,7 @@ from fastapi.responses import JSONResponse
 from typing import Annotated
 from settings import REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH,REFRESH_COOKIE_SAMESITE,REFRESH_COOKIE_SECURE
 from datetime import datetime
-
+from repositories.role import RoleRepository
 
 router = APIRouter(prefix= "/auth", tags=['Auth'])
 
@@ -24,7 +24,10 @@ async def registration(
 ):
 
     repo = UserRepository(session)
-    service = AuthService(repo)
+    role_repo = RoleRepository(session)
+
+    service = AuthService(repo = repo, role_repo=role_repo)
+
     return await service.user_registration(data)
 
 
@@ -32,10 +35,12 @@ async def registration(
 @router.post('/login', response_model=TokenResponse)
 async def login(data:UserLogin, response: Response, session: AsyncSession = Depends(async_get_db) ):
 
-#    repo = UserRepository(session)
-    service = AuthService(UserRepository(session))
+    user_repo = UserRepository(session)
+    refresh_repo = RefreshTokenRepository(session)
 
-    tokens = service.user_login(data)
+    service = AuthService(user_repo, refresh_repo)
+
+    tokens = await service.user_login(data)
 
     response.set_cookie(
         key = REFRESH_COOKIE_NAME,

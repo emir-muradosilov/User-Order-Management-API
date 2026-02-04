@@ -11,16 +11,16 @@ class UserCreate(BaseModel):
     login :str
     email : EmailStr
     password : str
-    is_active : bool
-    role : Role = Field(default=Role.user)
+#    is_active : bool
+#    role : Role = Field(default=Role.user)
 
 
 class UserResponse(BaseModel):
     login :str
     email : EmailStr
     is_active : bool
-    role : Role
-    created_at : datetime
+    role : str
+#    created_at : datetime
 
 
 class UserUpdate(BaseModel):

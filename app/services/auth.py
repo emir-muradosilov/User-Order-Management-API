@@ -14,15 +14,15 @@ from core.security import hash_password, verify_password, create_access_token, c
 import jwt
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from datetime import datetime, timedelta, timezone
-
+from repositories.role import  RoleRepository
 from core.security import decode_token
 
 class AuthService:
 
-    def __init__(self, repo : UserRepository | None, refresh:RefreshTokenRepository):
+    def __init__(self, repo : UserRepository | None, refresh:RefreshTokenRepository | None = None, role_repo : RoleRepository | None = None):
         self.repo = repo
         self.refresh = refresh
-        
+        self.role_repo = role_repo
     
 
     async def user_registration(self, data: UserCreate) -> User:
@@ -33,33 +33,43 @@ class AuthService:
                 detail='Данный пользователь уже существует'
                 )
         
+        role = await self.role_repo.get_by_name("user")
+        if not role:
+            raise RuntimeError("Default role 'user' not found")
+
         user = User(
             login = data.login,
             email = data.email,
             password_hash = hash_password(data.password),
             is_active = True,
-            role = data.role
+            role = role
         )
         
-        return await self.repo.create_user(user)
+        user = await self.repo.create_user(user)
+        
+        return {
+        "login": user.login,
+        "email": user.email,
+        "is_active": user.is_active,
+        "role": role.name,
+        "created_at": user.created_at,
+    }
 
 
     async def user_login(self, data: UserLogin):
         user = await self.repo.get_user_by_login(data.login)
-        if not user:
-            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Пользователь с таким login не найден!')
-        if verify_password(data.password, user.password_hash):
+        if not user or not verify_password(data.password, user.password_hash):
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid credentials')
+        
             
-            token_data  = create_refresh_token(str(user.id))
+        token_data  = create_refresh_token(str(user.id))
 
-            return {
-            "access_token": create_access_token(str(user.id)),
-            "refresh_token": token_data['token'],
-            "refresh_jti": token_data['jti'],
-            "refresh_expires": token_data["expires_at"]
+        return {
+        "access_token": create_access_token(str(user.id)),
+        "refresh_token": token_data['token'],
+        "refresh_jti": token_data['jti'],
+        "refresh_expires": token_data["expires_at"]
         }
-
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Неверный пароль!')
 
         
     async def refresh_access_token(self, refresh_token:str):
@@ -121,3 +131,5 @@ class AuthService:
             return 
         
         await self.refresh.revoke_refresh_token(jti)
+
+

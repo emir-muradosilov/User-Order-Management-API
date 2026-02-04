@@ -72,5 +72,10 @@ class RefreshToken(Base):
 
 
 
-
+class Order(Base):
+    __tablename__='orders'
+    id:Mapped[int] = mapped_column(primary_key=True)
+    name : Mapped[str] = mapped_column()
+    description : Mapped[str]=mapped_column()
+    img : Mapped[str] = mapped_column()
 
