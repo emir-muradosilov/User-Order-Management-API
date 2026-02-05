@@ -19,14 +19,13 @@ class UserResponse(BaseModel):
     login :str
     email : EmailStr
     is_active : bool
-    role : str
+#    role : str
 #    created_at : datetime
 
 
 class UserUpdate(BaseModel):
     email : None | EmailStr
-    password_hash : None | str
-    is_active : None | bool
+
 
 
 class UserLogin(BaseModel):

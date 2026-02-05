@@ -14,7 +14,9 @@ from fastapi.security import OAuth2PasswordBearer
 from models.models import User
 from repositories.permission import PermissionRepository
 
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 
+http_bearer = HTTPBearer()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 def hash_password(password: str) -> str:
@@ -73,7 +75,13 @@ def create_refresh_token(subject: str) -> dict:
     return response_data
 
 
-def get_current_user(token:str= Depends(oauth2_scheme), db:AsyncSession = Depends(async_get_db)):
+async def get_current_user(
+#        token:str= Depends(oauth2_scheme),
+        credentials: HTTPAuthorizationCredentials = Depends(http_bearer),
+        db:AsyncSession = Depends(async_get_db)
+        ):
+
+    token = credentials.credentials
     payload = decode_token(token)
 
     if payload.get('type') != 'access':
@@ -89,7 +97,7 @@ def get_current_user(token:str= Depends(oauth2_scheme), db:AsyncSession = Depend
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Invalid access token')
     
     repo = UserRepository(db)
-    user = repo.get_user_by_id(user_id)
+    user = await repo.get_user_by_id(user_id)
     if not user or not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User not found')
     return user
@@ -103,13 +111,17 @@ def require_permission(permission_name: str):
     ) -> User:
         
         if not user or not user.is_active:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='User is inactive')
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='User is inactive')
         
         repo = PermissionRepository(session)
-        permission = await repo.get_permission_by_role_id(user.id)
+        permission = await repo.get_permission_by_role_id(user.role_id)
+
+ #       print("ROLE_ID:", user.role_id)
+#        print("REQUIRED:", permission_name)
+ #       print("USER PERMISSIONS:", permission)
 
         if permission_name not in permission:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Недостаточно прав')
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail='Недостаточно прав')
 
         return user
     

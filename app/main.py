@@ -7,8 +7,10 @@ app = FastAPI(debug = True,)
 from api.v1.auth import router as auth
 from api.v1.orders import router as orders
 from api.v1.products import router as products
+from api.v1.users import router as user
 
 app.include_router(auth)
+app.include_router(user)
 app.include_router(orders)
 app.include_router(products)
 

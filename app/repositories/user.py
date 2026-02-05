@@ -1,8 +1,8 @@
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from models.models import User
-from schemas.users import UserCreate
-from sqlalchemy import delete, insert, select, text
+from schemas.users import UserCreate, UserUpdate
+from sqlalchemy import delete, insert, select, text, update
 
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from typing import Annotated
@@ -29,6 +29,18 @@ class UserRepository:
         user = await self.db.scalar(stmt)
         return user
     
+
+    async def update_user_data(self, user_id:int, data:UserUpdate) -> User|None:
+
+        update_data = data.model_dump(exclude_unset=True)
+
+        if not update_data:
+            return await self.db.get(User, user_id)
+        
+        stmt = update(User).where(User.id == user_id).values(**update_data).returning(User)
+        result = await self.db.execute(stmt)
+        await self.db.commit()
+        return result.scalar_one_or_none()
 
 
 

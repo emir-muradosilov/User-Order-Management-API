@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Response, Cookie, HTTPException
-from schemas.users import UserResponse, UserCreate, UserLogin
+from schemas.users import UserResponse, UserCreate, UserLogin, UserUpdate
 from repositories.user import UserRepository
 from repositories.refresh_token import RefreshTokenRepository
 from services.auth import AuthService
@@ -98,6 +98,7 @@ async def logout(
         key=REFRESH_COOKIE_NAME,
         path=REFRESH_COOKIE_PATH,
         )
+
 
 
 
