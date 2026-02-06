@@ -13,6 +13,8 @@ from typing import Annotated
 from settings import REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH,REFRESH_COOKIE_SAMESITE,REFRESH_COOKIE_SECURE
 from datetime import datetime
 from repositories.role import RoleRepository
+from api.v1.dependencies.auth import get_current_user
+
 
 router = APIRouter(prefix= "/auth", tags=['Auth'])
 
@@ -80,6 +82,12 @@ async def refresh(response: Response, refresh_token: Annotated[str | None, Cooki
 
 
 @router.post('/logout', status_code=204)
+async def logout():
+    return {"message": "Logged out"}
+
+
+'''
+@router.post('/logout', status_code=204)
 async def logout(
     response: Response,
     refresh_token: Annotated[str | None, Cookie()] = None,
@@ -98,7 +106,8 @@ async def logout(
         key=REFRESH_COOKIE_NAME,
         path=REFRESH_COOKIE_PATH,
         )
+'''
 
 
 
-
+    

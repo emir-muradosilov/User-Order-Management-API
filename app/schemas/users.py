@@ -8,6 +8,7 @@ class Role(str, Enum):
     user: str = 'user'
 
 class UserCreate(BaseModel):
+    name :str
     login :str
     email : EmailStr
     password : str
@@ -16,6 +17,7 @@ class UserCreate(BaseModel):
 
 
 class UserResponse(BaseModel):
+    name :str
     login :str
     email : EmailStr
     is_active : bool
@@ -24,6 +26,7 @@ class UserResponse(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    name :str
     email : None | EmailStr
 
 

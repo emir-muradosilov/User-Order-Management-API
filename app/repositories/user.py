@@ -24,6 +24,12 @@ class UserRepository:
         return user_date
     
 
+    async def delete_user(self, user_id):
+        stmt = update(User).where(User.id == user_id).values(is_active = False).returning(User)
+        user = await self.db.execute(stmt)
+        await self.db.commit()
+        return user.scalar_one_or_none()
+
     async def get_user_by_id(self, user_id) -> User | None:
         stmt = select(User).where(User.id == user_id)
         user = await self.db.scalar(stmt)

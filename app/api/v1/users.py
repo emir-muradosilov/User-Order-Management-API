@@ -1,7 +1,11 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Response, Cookie, HTTPException
 from api.v1.dependencies.auth import get_current_user
 from models.models import User
 from core.security import require_permission
+from typing import Annotated
+from settings import REFRESH_COOKIE_NAME, REFRESH_COOKIE_PATH,REFRESH_COOKIE_SAMESITE,REFRESH_COOKIE_SECURE
+from repositories.refresh_token import RefreshTokenRepository
+from services.auth import AuthService
 
 from schemas.users import UserResponse, UserUpdate
 from repositories.user import UserRepository
@@ -40,3 +44,16 @@ async def update_user_data(
         data=data
     )
     return user
+
+
+@router.post('delete')
+async def delete_user(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(async_get_db)
+):
+
+    user_repo = UserRepository(session)
+    
+    user = await user_repo.delete_user(user_id=current_user.id) 
+
+    return {"message": "Your account is deleted", 'user status': user.is_active}
